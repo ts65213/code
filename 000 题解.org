@@ -1,0 +1,1292 @@
+应该把解题过程中遇到的问题都尽量记录下来
+
+DP需要细分类   集合上的DP  树上的DP等等
+
+小白书  
+前几章还是要浏览一下
+第6章对拍和随机数发生器
+
+
+* 数据结构
+** 并查集
+*** 相关
+*** 模板
+#+BEGIN_SRC c++
+  const int N = 50007;
+
+  int rank[N];   // 节点高度的上界
+  int parent[N]; // 根节点
+
+  int FindSet(int i){  //递归
+      if(i != parent[i]) {
+          parent[i] = FindSet(parent[i]);
+      }
+      return parent[i];
+  }
+
+  int FindSet2(int i){  //迭代
+      int j;
+      for(j = i; j != parent[j]; j = parent[j]);
+      while(i != j){
+          int temp = i;
+          i = parent[i];
+          parent[temp] = j;
+      }
+      return j;
+  }
+
+  void UnionSet(int x,int y,int rx,int ry,int d){
+      if(rx==ry) return;
+      if(rank[rx]>rank[ry]){
+          parent[ry]=rx;
+      }else{
+          parent[rx]=ry;
+          if(rank[rx]==rank[ry])rank[ry]++;
+      }
+  }
+
+  void MakeSet(){
+      for(int i=0;i<=N;i++) {
+          parent[i]=i; rank[i]=0;
+      }
+  }
+#+END_SRC
+*** 题目
+**** 题集
+较简单：1988 2236 2492 2524
+较难：  1417 1456 1733 1861 2560 2827 2912
+hdu3038
+zoj3261
+**** [[file:poj1182.cpp][poj1182]] 好题
+***** 题意
+三类动物A,B,C，A吃B， B吃C，C吃A。 
+有人用两种说法对N个动物所构成的食物链关系进行描述： 
+1 X Y，表示X和Y是同类。 
+2 X Y，表示X吃Y。 
+此人对N个动物，用上述两种说法，一句接一句地说出K句话，当一句话满足下列三条之一时，这句话就是假话，否则就是真话。 
+1） 当前的话与前面的某些真的话冲突，就是假话； 
+2） 当前的话中X或Y比N大，就是假话； 
+3） 当前的话表示X吃X，就是假话。 
+你的任务是根据给定的N（1 <= N <= 50,000）和K句话（0 <= K <= 100,000），输出假话的总数。
+***** 思路
+1. 法一：集合存放同类动物
+   3*i吃3*i+1     3*i+1吃3*i+2     3*i+2吃3*i
+   若b和c是同类  则 UnionSet(3*b,3*c);
+   UnionSet(3*b+1,3*c+1);
+   UnionSet(3*b+2,3*c+2);
+   若b吃c        则 UnionSet(3*b+1,3*c);
+   UnionSet(3*b+2,3*c+1);
+   UnionSet(3*b,3*c+2);
+
+2. 法二：集合存放能确定相对关系的动物，同时用数组r[i]记录i和p[i]的偏移量
+   r[i] == 0 表示p[i]与i同类； 1表示p[i]吃i； 2表示i吃p[i]。
+   假设已读入 D , X , Y , 先利用find_set()函数得到X , Y 所在集合的代表元素 rx , ry ,
+   find_set()时，要更新路径上的所有点的parent[]和偏移量r[]，
+   find_set()结束后，p[x]即为rx，r[x]即为x与rx的偏移量
+   若它们在同一集合（即 rx == ry ）则可以判断这句话的真伪
+   若 D == 1 而 r[X] != r[Y] 则此话为假。
+   若 D == 2 而 r[X] == r[Y] （X 与Y为同类）或者　r[X] == ( r[Y] + 1 ) % 3 （Y吃X ）则此话为假。
+
+** 线性结构
+*** 线性表
+**** vector
+#+BEGIN_SRC c++
+  vector<int> a;
+  vector<int> b(a);               //用vector a初始化vector b
+  vector<int> b (a.begin(),a.end()-3);    //用a的[begin,end-3)来构造b
+  vector<int> c(100);             //创建长度100的vector
+  vector<int> d(100, 3);          //长100，每项为3的vector
+
+  a.empty()        a.clear()      //判断是否为空   清空
+  a.size()         a.resize()     //长度   设置长度
+
+  a.begin()        a.end()        //头尾指针
+  a.rbegin()       a.rend()       //逆向头尾指针
+
+  a[0]             a.at(index);   //index位置的元素，index是数字？
+  a.front()        a.back()       //头尾元素的引用  如何对头尾元素赋值？
+
+  a.assign(b.begin(),b.end())     //将b的[begin,end)赋值给a
+  a.assign(n,3)                   //将a赋值为n个3
+
+  a.insert(p,3)                   //在指针p处插入3，返回新元素指针
+  a.insert(p,100,3)               //在指针p处插入100个3，无返回值
+  a.insert(p,begin,end)           //在指针p插入[begin,end)的数据，无返回值
+  a.push_back(3);                 //在末尾添加
+
+  a.pop_back();                   //删除尾元素
+  a.erase(p)                      //删除指针p位置的数据，返回指向下一个数据的指针
+  a.erase(begin,end)              //删除[begin,end)的数据
+
+  vector<int>::iterator it;       //遍历
+  for (it = a.begin(); it != a.end(); it++)
+      cout << *it << endl;
+  for (int i = 0; i < a.size(); i++) //size()的复杂度是多少？
+      cout << a.at(i) << endl;
+
+  sort(a.begin(),a.end())         //排序
+
+  reverse(a.begin(),a.end())      //翻转
+
+
+  a.swap(b)    swap(a,b)          //交换容器元素   第二种待验证
+
+#+END_SRC
+**** 题目
+***** DONE [[file:uva10152.cpp][uva10152]] 线性表       简单    想了几分钟
+CLOSED: [2017-08-08 周二 22:32]
+****** 题意
+N个乌龟叠在一起，每次能将某一只乌龟拿到最上面，用最少的操作次数，将乌龟排成指定的顺序。
+
+****** 数据
+n只乌龟，下面n行，每行一个名字，表示初始顺序，再下面n行，表示目标顺序。
+
+****** 思路
+将目标顺序里的乌龟，从下往上编号为1~n，在初始顺序里，依次找1号龟、2号龟...
+如果第i+1号龟在第i号龟的下面，那么每次拿的乌龟就是i+1, i+2, ... n
+因为1号肯定不用拿，若将1号拿到最上面，那么接下来肯定要拿2号3号4号...
+如果2号在1号的上面，那么此时的2号就相当于1号，也不用拿
+如果2号在1号的下面，那么肯定要拿2号，2号如果拿了，接下来就是3456号...
+后面的都同理
+
+*** 栈
+**** 知识点
+栈 stack
+#+BEGIN_SRC c++
+	   #include<stack>
+	   stack<int> s;
+	   while(!s.empty()){
+		 int a = s.top();
+		 s.pop();
+		 s.push(a);
+	   }
+#+END_SRC
+**** 题目
+***** DONE [[file:uva127.cpp][uva-127]] 链表 双向链表 栈      简单    立即做出
+CLOSED: [2017-08-07 周一 22:05]
+****** 题意
+一副扑克牌从左到右排列，如果两张牌的点数或者花色相同，则视为两张牌相同。
+第i堆顶部的牌，如果和第i-3堆或第i-1堆顶部的牌相同，则可以移到那一堆上。
+同时相同，优先移到i-3堆上。同时有多张牌可移动，优先移动最左边的。
+某堆为空，则右边所有的堆依次左移。求最后剩几堆，每堆有几张牌。
+
+****** 数据
+输入：每两行代表一副牌，第一位点数，第二位花色，#结束
+QD AD 8H 5S 3H 5H TC 4D JH KS 6H 8S JS AC AS 8D 2H QS TS 3S AH 4H TH TD 3C 6S
+8C 7D 4C 4S 7S 9H 7C 5D 2S KD 2D QH JD 6D 9D JC 2C KH 3D QC 6C 9S KC 7H 9C 5C
+AC 2C 3C 4C 5C 6C 7C 8C 9C TC JC QC KC AD 2D 3D 4D 5D 6D 7D 8D TD 9D JD QD KD
+AH 2H 3H 4H 5H 6H 7H 8H 9H KH 6S QH TH AS 2S 3S 4S 5S JH 7S 8S 9S TS JS QS KS
+#
+
+输出：剩几堆，以及每堆几张牌
+6 piles remaining:  40 8 1 1 1 1
+1 pile remaining: 52
+
+****** 思路
+每堆牌用栈表示
+堆的前后关系用双向链表维护，堆空时能快速删除。
+
+*** 队列
+**** 知识点
+***** 队列 queue
+#+BEGIN_SRC c++
+  #include<queue>
+  queue<int> q;
+  while(!q.empty()){
+    int a = q.front();
+    q.pop();
+    q.push(a);
+  }
+#+END_SRC
+
+***** 双向队列 deque
+#+BEGIN_SRC c++
+  #include<deque>
+  deque<int> q;
+  while(!q.empty()){
+      int cnt = q.size();
+      int a = q.front();
+      int b = q.back();
+      q.pop_front();
+      q.pop_back();
+      q.push_front(a);
+      q.push_back(a);
+      //可以在中间插入、删除、访问数据
+      //q.begin() q.end() q.rbegin() q.rend() 迭代器
+  }
+
+#+END_SRC
+
+***** 优先级队列 priority_queue
+#+BEGIN_SRC c++
+  #include<queue>
+  struct edge{
+    int begin,end,value;
+    edge(){}
+    edge(int b,int e,int v):begin(b),end(e),value(v){}
+  };
+  struct cmp{
+    bool operator()(edge e1,edge e2)
+    {
+      return e1.value>e2.value;//最小堆   
+    }
+  };
+  priority_queue<edge,vector<edge>,cmp> q;
+
+  while(!q.empty()){
+      int a = q.top();
+      q.pop();
+      q.push(a);
+  }
+#+END_SRC
+** 树
+*** 遍历
+**** 题目
+***** DONE [[file:uva548.cpp][uva548]] 根据遍历序列构造二叉树     简单   但思路出错 代码也各种错
+CLOSED: [2017-08-10 周四 22:28]
+****** 题意
+给出中序遍历和后序遍历，求根到叶节点的最小和
+
+****** 数据
+每个节点值互不相同，0<value<10000，节点数 0<n<=10000，
+输出和最小的路径的叶节点的值
+
+****** 思路
+后序遍历的最后一个是根，在中序序列里找到根，可将树分成左右两颗子树
+
+****** 坑
+想一边递归一边通过 if( visit(left)==-1 && visit(right)==-1 ) 
+来判断是否是叶节点，是不行的。
+因为当visit(left)!=-1时，   visit(right)不会执行
+
+*** Splay
+**** 相关
+1. 节点x有某种标记，表示该节点已经处理过，但左右子树还未处理。
+   这样虽然感觉不爽，但pushUp会容易写一些
+2. 节点0里的值可能干扰正常计算，实在不行就全部特判。
+3. 找第k个节点，从root到这个节点本身都被pushDown了；
+   splay某个节点，这个节点的父结点和其本身都会pushDown
+   如果总是splayKth，而不直接调用splay，那么rotate里的两个pushDown可以省略，
+   因为splayKth一定将其pushDown了
+   递归建树时，以及旋转节点，会pushUp
+4. 添加keyTree，要么用ins函数，否则要处理pre[keyTree]
+5. 区间增加c的时候，通常需要用long long，
+   特别是0节点，其他所有节点都会向0节点pushDown，一不小心就超int，也可以判断0
+6. 修改一个元素，可以旋转到根，再修改，然后PushUp一下
+   或者修改后旋转到根，
+   或者修改后一路PushUp到根，这种方法应该最快，但需要额外的代码
+7. 删除keyTree后，或其它keyTree可能为0的时候，不可以splay(keyTree)，要pushUp
+8. keyTree未必已经pushDown了，取其中的值之前，要pushDown
+**** 模板
+#+BEGIN_SRC c++
+  #define keyTree (ch[ ch[root][1] ][0])
+  const int N = 100005;
+  struct SplayTree{
+      int sz[N];
+      int ch[N][2];//ch[][0]左孩子  ch[][1]右孩子
+      int pre[N];//父结点
+      int root,top;
+      stack<int> sta;  //复用删掉的节点
+      queue<int> que;  //bfs删除子树时用到
+
+      //基本操作
+      void rotate(int x,int f) {//f==0左旋转  f==1右旋转
+          int y=pre[x], z=pre[y];
+          pushDown(y); pushDown(x);
+          ch[y][!f]=ch[x][f]; pre[ch[x][f]]=y;
+          pre[x]=z;
+          if(z) ch[z][ch[z][1]==y]=x;
+          ch[x][f]=y; pre[y]=x;
+          pushUp(y);
+          //if(y==root)root=x;
+      }
+      void splay(int x,int goal) {//将x旋转到goal的下面  goal为0则旋转到根
+          pushDown(x);
+          while(pre[x]!=goal) {
+              int y=pre[x],z=pre[y],f=(ch[z][0]==y);
+              if(z==goal) rotate(x,ch[y][0]==x);
+              else{
+                  if(ch[y][f]==x) rotate(x,!f),rotate(x,f);//之字形
+                  else rotate(y,f),rotate(x,f);//一字型
+              }
+          }
+          pushUp(x);
+          if(goal==0) root=x;
+      }
+      int findKth(int k) {//找第k个节点  k从1开始
+          k++; //由于加入了两个边界结点  所以应为k+1位
+          int x=root;
+          pushDown(x);
+          while(sz[ch[x][0]]!=k-1) {
+              if(k-1<sz[ch[x][0]]) x=ch[x][0];
+              else k-=(sz[ch[x][0]]+1), x=ch[x][1];
+              pushDown(x);
+          }
+          return x;
+      }
+      void splayKth(int k, int goal) {//将第k个节点 旋转到goal下面 goal为0则旋转到根
+          int x = findKth(k);
+          splay(x, goal);
+      }
+
+      void makeTree(int &x,int l,int r,int arr[],int father){//根据arr数组的 [l,r]区间 在x位置建立子树
+          if(l>r) return;
+          int m=(l+r)>>1;
+          newNode(x,arr[m],father);  //
+          makeTree(ch[x][0],l,m-1,arr,x);
+          makeTree(ch[x][1],m+1,r,arr,x);
+          pushUp(x);
+      }
+      void ins(int arr[], int n) {//在keyTree的位置，用arr[0,n)建立子树，即添加区间
+          makeTree(keyTree,0,n-1,arr,ch[root][1]);
+          pushUp(ch[root][1]);
+          pushUp(root);
+      }
+      void del(int x) {//删除x及其子树
+          int fa=pre[x];
+          // while(!que.empty()) que.pop();
+          que.push(x);
+          while(!que.empty()) {
+              int t = que.front();
+              que.pop();
+              sta.push(t);
+              if(ch[t][0]) que.push(ch[t][0]);
+              if(ch[t][1]) que.push(ch[t][1]);
+          }
+          ch[fa][ch[fa][1]==x]=0;
+          splay(fa, 0);
+      }
+
+      int pred(int x){//在x的子树中找x的前驱  不存在返回0
+          pushDown(x);
+          int y=ch[x][0]; pushDown(y);
+          while(ch[y][1]) y=ch[y][1],pushDown(y);
+          return y;
+      }
+      int succ(int x){//在x的子树中找x的后继  不存在返回0
+          pushDown(x);
+          int y=ch[x][1]; pushDown(y);
+          while(ch[y][0]) y=ch[y][0],pushDown(y);
+          return y;
+      }
+
+      //以上一般不修改//////////////////////////////////////////////////
+      void init() {
+          while(!sta.empty()) sta.pop();
+          ch[0][0]=ch[0][1]=pre[0]=sz[0]=0;
+          root=top=0;
+          add[0]=rev[0]=0;    //
+          val[0]=Min[0]=INF;  //
+
+          newNode(root,0,0);   //
+          newNode(ch[root][1],0,root);  //
+      }
+
+      void newNode(int &x,int c,int father) {
+          if(!sta.empty()) x=sta.top(), sta.pop();
+          else x=++top;
+          ch[x][0]=ch[x][1]=0;
+          sz[x]=1;  pre[x]=father;
+
+          val[x]=Min[x]=c;    //
+          add[x]=rev[x]=0;    //
+      }
+
+      void pushDown(int x) {
+          // if(x==0) return;
+      }
+
+      void pushUp(int x) {
+          // if(x==0) return;
+          sz[x]=1+sz[ch[x][0]]+sz[ch[x][1]];
+      }
+
+      void update(){
+          pushUp(ch[root][1]);
+          pushUp(root);
+      }
+
+      void query() {
+
+      }
+      int num[N];//暂存数据  用来建树
+      int val[N];
+      int add[N];
+      long long sum[N];
+
+
+      queue<int> qe;
+      void pr(int x){
+          if(x==1) printf("L ");
+          else if(x==2) printf("R ");
+          else if(val[x]==INF) printf("null ");//
+          else printf("%d ", val[x]);
+      }
+      void shuchu(int x=0){
+          if(!x) x=root;
+          while(!qe.empty())qe.pop();
+          qe.push(x);
+          while(!qe.empty()) {
+              int t = qe.front(); qe.pop();
+              int c1 = ch[t][0], c2 = ch[t][1];
+              if(c1) qe.push(c1);
+              if(c2) qe.push(c2);
+              pr(t); pr(c1); pr(c2); printf("\n");
+          }
+      }
+
+  }spt;
+
+
+  int main() {
+      int n , m;
+      scanf("%d%d",&n,&m);
+      for(int i=0;i<n;i++) scanf("%d",&spt.num[i]);
+      spt.init();
+      spt.ins(spt.num, n);
+      return 0;
+  }
+
+#+END_SRC
+**** 题目
+***** DONE [[file:hdu1754.cpp][hdu-1754]]  单点更新，求区间最大值   简单
+****** 题意
+单点更新    求区间最大值
+***** DONE [[file:poj3468.cpp][poj-3468]]  区间更新，求区间总和     pushUp换种写法就错了    不解
+****** 题意
+区间增加c     询问区间总和
+***** DONE [[file:hdu1890.cpp][hdu-1890]]  反转和删除              存下标的思想还是不错的
+****** 题意
+一个排序机器，
+第1次在a[1~n]里找到最小的数，设为a[i]，将a[1~i]翻转，a[1]就是最小的数
+第1次在a[2~n]里找到最小的数，设为a[i]，将a[2~i]翻转，a[2]就是第2小的数
+.....
+如果最小的数不止一个，则取原数列中靠前的那个。
+输出每次的i
+****** 思路
+找到最小的数，将其删除，这样每次就都是找最小的数
+由于当有多个最小的数时，要输出原数列中靠前的那个，
+伸展树里要存下标，以及子树中最小元素的下标
+***** DONE [[file:poj3580.cpp][poj-3580]]  比较综合
+****** 题意
+1. 区间每个数加D
+2. 区间翻转
+3. 区间向右滚动T次    12345滚动1次为51234
+4. 第x个数后面添加p
+5. 删除第x个数
+6. 询问区间最小值
+***** hdu-2475  不会
+****** 题意
+桌子上有一堆可改变大小的盒子，编号1~n，n<=50000
+MOVE x y表示将x连同x里面的盒子放到y里，y为0则放到桌子上，y==x或y在x里则为非法操作，忽略。
+QUERY x 询问x的最外层的盒子
+操作次数m<=100000
+****** 思路
+***** hdu-3726  不会
+****** 题意
+无向图，
+n个点,编号1~n，(1<=n<=20000)
+点上有权值v (-100 0000<=v<=100 10000)，
+m条边，编号1~m，(1<=m<=60000)
+三种操作：
+D x 删除第x条边(1<=x<=m)，一条边最多被删除一次
+Q x k 询问和x连通的点中，第k大的value，k不合法则返回0
+C x v 点x的value设为v  (-100 0000<=v<=100 10000)
+E 结束
+其中Q和C操作，都不会超过200000次
+输出所有Q的平均值
+***** fzu-1978  不会
+****** 题意
+给定长为n(1<=n<=50000)的括号序列s，编号为1~n，有如下操作：
+Replace l r c 将[l,r]区间都置为c，c为'(' 或 ')'
+Swap l r 翻转[l,r]
+Invert l r 将区间[l,r]里的 '(' 和 ')' 互换
+Query l r 最少改变[l,r]里的几个括号，能使该区间里的序列合法，  区间长度r-f+1总是偶数
+操作总数m<=50000
+****** 思路
+如果已有replace标记，再添加invert标记，相当于把replace标记的'('和')'互换
+如果已有invert标记，再添加replace标记，相当于去除invert，只保留replace
+***** DONE [[file:bzoj1269.cpp][bzoj-1269]] 比较综合
+****** 题意
+文本编辑器有如下操作：
+Move k       将光标移动到第k个字符之后，k=0则移动到第1个字符之前
+Insert n s   在光标后插入长为n的字符串s，光标位置不变，n>=1
+Delete n     删除光标后的n个字符，光标位置不变，n>=1
+Rotate n     反转光标后的n个字符，光标位置不变，n>=1
+Get          输出光标后的1个字符，光标位置不变
+Prev         光标前移1位
+Next         光标后移1位
+****** 数据
+Insert n s   s会另起一行，且末尾没有空格(开头和中间会有空格)
+MOVE操作不超过50 000个，
+INSERT、DELETE和ROTATE操作作的总个数不超过6 000，
+GET操作不超过20 000个，
+PREV和NEXT操作的总个数不超过20 000。
+所有INSERT插入的字符数之和不超过2M
+DELETE操作、ROTATE操作和GET操作执行时光标后必然有足够的字符。
+MOVE、PREV、NEXT操作不会把光标移动到非法位置。
+****** 坑
+1. 取光标后的一个字符，不能splayKth(cs, 0);  splayKth(cs+2, root);
+   后面多加了一个节点，cs+1没事，cs+2是会超出的。应该splayKth(cs+1, 0);  return val[root];
+2. 如果一开始是空树，那么spt.ins(spt.num, 0);
+3. 2^20不是幂运算，RE了10几次，要pow(2, 20);
+***** DONE [[file:bzoj1500_1.cpp][bzoj-1500]] 综合
+****** 题意
+INSERT p n c1 c2 .. cn  在数列的第p个数字后面插入n个数字，p为0则在列首插入
+DELETE p n  从第p个数字开始，连续删除n个数字
+MAKE-SAME p n c  从第p个数字开始的n个数字设置为c
+REVERSE p n 翻转第p个数字开始的n个数字
+GET-SUM p n 输出第p个数字开始的n个数字的和
+MAX-SUM  求和最大的子列，输出和
+****** 数据
+输入的第1 行包含两个数N 和M(M ≤20 000)，N 表示初始时数列中数的个数，M表示要进行的操作数目。
+第2行包含N个数字，描述初始时的数列。
+以下M行，每行一条命令，格式参见问题描述中的表格。
+任何时刻数列中最多含有500 000个数，数列中任何一个数字均在[-1 000, 1 000]内。
+插入的数字总数不超过4 000 000个，输入文件大小不超过20MBytes。
+****** 思路
+主要是最大子列的和
+L[x]、R[x]、M[x]分别记录x子树左侧、右侧、整个区间的最大子列的和
+整个区间置为c，要根据c的正负来更新L、R、M
+翻转区间，除了交换左右孩子，L和R也要交换
+** 图
+*** 最短路
+**** 相关
+如果边长都是1，那就是bfs咯，
+例如棋盘上的一堆问题，每次不需要费劲去找当前距离最小的节点
+**** Dijkstra
+***** 相关
+1. 适用范围
+   单源最短路径，无负权边
+2. 思想
+   最小堆维护节点，堆顶元素的dist就是该点最终的dist，不会再改变
+   每次用堆顶元素进行松弛操作，直到n个顶点都从堆顶弹出过
+
+   堆里存放的是结构体{顶点编号，当前距离}，一个顶点哪怕更新了距离，
+   以前旧的距离也在堆中，影响堆的效率
+   而SPFA使用队列，存放的是顶点编号，距离可以实时改动，缺点是不能找到最小距离的点
+   SPFA的两个优化，目的就是尽量使用距离较小的点
+3. 优化
+   某点i出队时，若出队的节点里存的距离>=该点目前的最短距离，则不用松弛
+   还可以弄一个标记数组f，当某点i不在队列里，f[i]=0，
+   当将i加入到队列里时，若f[i]=0，即队列里没有该点的其它距离副本，令f[i]=1，
+   点i出队时，f[i]=0，在某点出队前，若f[1~n]都为0，算法可以结束，
+   因为此时队列里存的都是点的较长距离的副本，
+   即使算法不结束，也只是将这些点一个个出队而已。
+***** 模板
+#+BEGIN_SRC c++
+  #define N 1001
+  struct Node{
+      int v,val,next;
+  }edge[N<<3];
+
+  int len;
+  int head[N],  n,  rt;
+  int dist[N], pre[N], vis[N];
+
+  void add(int &kind, int v, int val){//起点  终点  权值
+      edge[len].next = kind;
+      edge[len].v = v;
+      edge[len].val = val;
+      kind = len++;
+  }
+
+  struct nod{ int u, dist; };
+
+  struct cmp{
+      bool operator()(nod e1, nod e2) {
+          return e1.dist > e2.dist;//最小堆
+      }
+  };
+
+  priority_queue<nod, vector<nod>, cmp> que;
+
+  void Dijkstra(){
+      int cnt = 0;
+      dist[rt] = 0; pre[rt] = -1;
+      nod h;   h.u = rt;  h.dist = 0;   que.push(h);
+      while( !que.empty() ){
+          h = que.top();   que.pop();   int u = h.u;
+          if(vis[u]) continue;    vis[u] = 1;		if(++cnt == n) break;
+          for(int i = head[u]; i != -1; i = edge[i].next){
+              int v = edge[i].v, val = edge[i].val;
+              if(dist[v] > dist[u] + val){
+                  dist[v] = dist[u] + val;  pre[v] = u;
+                  h.u = v;  h.dist = dist[v];
+                  que.push(h);
+              }
+          }
+      }
+  }
+
+  void init(){
+      len = 0;
+      memset(head, -1, sizeof head);
+      memset(dist, 0x3f, sizeof dist);
+      memset( vis, 0, sizeof vis );
+      while(!que.empty()) que.pop();
+  }
+
+  void build(){
+      rt = 1;
+      int m, a, b, c;
+      scanf("%d", &m);
+      while( m-- ){
+          scanf("%d%d%d", &a, &b, &c);
+          add(head[a], b, c);
+      }
+  }
+
+  int main(){
+      init();
+      build();
+      Dijkstra();
+
+      return 0;
+  }
+
+#+END_SRC
+
+负权边  某点出堆后还可以再入堆  最短路径长度>=n则有负回路
+#+BEGIN_SRC c++
+  #define N 1001
+  struct Node{
+      int v,val,next;
+  }edge[N<<3];
+
+  int len;
+  int head[N],  n,  rt;
+  int dist[N], pre[N], pLen[N];
+
+  void add(int &kind, int v, int val){//起点  终点  权值
+      edge[len].next = kind;
+      edge[len].v = v;
+      edge[len].val = val;
+      kind = len++;
+  }
+
+  struct nod{ int u, dist; };
+
+  struct cmp{
+      bool operator()(nod e1, nod e2) {
+          return e1.dist > e2.dist;//最小堆
+      }
+  };
+
+  priority_queue<nod, vector<nod>, cmp> que;
+
+  bool Dijkstra(){
+      dist[rt] = 0; pre[rt] = -1; pLen[rt] = 0;
+      nod h;   h.u = rt;  h.dist = 0;   que.push(h);
+      while( !que.empty() ){
+          h = que.top();   que.pop();   int u = h.u;
+          if(h.dist > dist[u]) continue;
+          for(int i = head[u]; i != -1; i = edge[i].next){
+              int v = edge[i].v, val = edge[i].val;
+              if(dist[v] > dist[u] + val){
+                  dist[v] = dist[u] + val;  pre[v] = u;  pLen[v] = pLen[u]+1;
+                  if(pLen[v] >= n) return false;
+                  h.u = v;  h.dist = dist[v];
+                  que.push(h);
+              }
+          }
+      }
+      return true;
+  }
+
+  void init(){
+      len = 0;
+      memset(head, -1, sizeof head);
+      memset(dist, 0x3f, sizeof dist);
+      while(!que.empty()) que.pop();
+  }
+
+  void build(){
+      int m, a, b, c;
+      scanf("%d%d%d", &n, &m, &rt);
+      while( m-- ){
+          scanf("%d%d%d", &a, &b, &c);
+          add(head[a], b, c);
+      }
+  }
+
+  int main(){
+      init();
+      build();
+      if(!Dijkstra()) cout<<"有负回路"<<endl;
+      return 0;
+  }
+
+#+END_SRC
+**** Bellman-Ford
+***** 相关
+1. 适用范围
+   单源最短路径，有向/无向图，有负权边，没有负回路，复杂度太高
+2. 思想
+   最短路径不会包含正回路，也不会包含负回路，因此最短路径最多有v-1条边
+   外层循环v-1次，每次对所有边进行松弛
+   第k次循环，会确定所有最短路径边数为k的点的最短路径
+   如果某次循环没有更新，则已经找到所有点的最短路
+   如果第v次循环，还能更新某个点的距离，说明存在负回路
+
+**** SPFA 
+***** 相关
+1. 适用范围
+   单源最短路径，有向/无向图，有负权边，没有负回路
+2. 思想
+   是Bellman-Ford算法的队列实现
+   将源点入队，当队列非空时，队首节点出队，并对关联的边进行松弛操作
+   如果某点的距离变短了，且该点不在队列中，则将其插入到队尾
+   期望复杂度O(ke)，k为顶点的平均入队次数，据说k一般<=2
+3. 判负环
+   最短路径不会包含正回路，也不会包含负回路，因此最短路径最多有v-1条边
+   某点第k次入队，则该点当前的路径长度>=k，第n次入队即有负环。
+   但n=1是特殊情况，要么特判n=1，要么认为第n+1次入队才有负环。
+   某个点的路径长度>=n时也有负环，感觉效率高的多，且没有特殊情况
+4. 优化
+   SLF：新元素比队首元素小，则插到队首，否则插到队尾
+   LLL：队列中元素平均距离为x，若队首元素的距离大于x，则移动到队尾
+   直到队首元素<=x
+   加入这两个优化，再根据入队n次来判断负环，想不通，或许是不行的。
+***** 模板
+bfs版本  有负环的话，据说比较慢，且效率不稳定
+#+BEGIN_SRC c++
+  #define N 505
+  struct Node{
+      int v,val,next;
+  }edge[N<<4];
+  int len;
+
+  int head[N],  n,  rt;
+  int dist[N];   //最短距离
+  int pre[N];    //前一个节点
+  int inQue[N];  //是否在队列中
+  int pLen[N];   //path length 路径长度
+
+  void add(int &kind, int v, int val){//起点  终点  权值
+      edge[len].next = kind;
+      edge[len].v = v;
+      edge[len].val = val;
+      kind = len++;
+  }
+
+  deque<int> que;
+
+  bool spfa(){
+      que.push_back(rt);  dist[rt]=0;  pLen[rt]=0;  pre[rt]=-1;
+      int cnt = 1, sum = 0;   //LLL优化  队列中元素个数  以及dist的和
+      while( !que.empty() ){
+          while( dist[que.front()] > sum/cnt ) {  //LLL
+              que.push_back(que.front());  que.pop_front();
+          }
+          int u = que.front(); que.pop_front(); inQue[u] = 0;
+          cnt--;   sum -= dist[u];  //LLL
+          for(int i = head[u]; i != -1; i = edge[i].next) {
+              int v = edge[i].v,  val = edge[i].val;
+              if(dist[v] > dist[u]+val) {
+                  dist[v] = dist[u]+val;  pre[v]=u;  pLen[v] = pLen[u]+1;
+                  if(pLen[v] >= n) return false;   //路径长度>=n 有负环
+                  if( !inQue[v] ){
+                      if(!que.empty() && dist[v] < dist[que.front()]){  //SLF优化
+                          que.push_front(v);
+                      }else {
+                          que.push_back(v);
+                      }
+                      cnt++;   sum += dist[v];  //LLL
+                      inQue[v] = 1;
+                  }
+              }
+          }
+      }
+      return true;
+  }
+
+  void init(){
+      len = 0;
+      memset(head,-1, sizeof head);
+      memset(dist, 1, sizeof dist);
+      memset(inQue, 0, sizeof inQue );
+      while(!que.empty()) que.pop_front();
+  }
+
+  void build(){       // 处理rt
+      int m, a, b, c;
+      rt=1;
+      scanf("%d%d", &n, &m);
+      while( m-- ){
+          scanf("%d%d%d", &a, &b, &c);
+          add(head[a], b, c);
+      }
+  }
+
+  int main() {
+      init();
+      build();
+      if(!spfa()) cout<<"有负环"<<endl;
+      return 0;
+  }
+#+END_SRC
+
+dfs版本  据说处理负环比较快
+#+BEGIN_SRC c++
+  #define N 505
+  struct Node{
+      int v,val,next;
+  }edge[N<<4];
+  int len;
+
+  int head[N],  n,  rt;
+  int dist[N];   //最短距离
+  int pre[N];    //前一个节点
+  int vis[N];    //是否在队列中
+
+  void add(int &kind, int v, int val){//起点  终点  权值
+      edge[len].next = kind;
+      edge[len].v = v;
+      edge[len].val = val;
+      kind = len++;
+  }
+
+  bool spfa(int u){
+      vis[u]=1;
+      for(int i = head[u]; i != -1; i = edge[i].next) {
+          int v=edge[i].v, val=edge[i].val;
+          if(vis[v] == 2) continue;
+          if(dist[v] > dist[u]+val) {
+              dist[v] = dist[u]+val;
+              pre[v]=u;
+              if(vis[v] == 1 || spfa(v)) return false;
+          }
+      }
+      vis[u]=0;  //求最短路   也判断负环
+      //vis[u]=2;  //不求最短路   只判断负环
+      return true;
+  }
+
+  void init(){
+      len = 0;
+      memset(head,-1, sizeof head);
+      memset(dist,0x3f, sizeof dist);
+      memset(vis, 0, sizeof vis);
+  }
+
+  void build(){       // 处理rt
+      int m, a, b, c;
+      rt=1;
+      scanf("%d%d", &n, &m);
+      while( m-- ){
+          scanf("%d%d%d", &a, &b, &c);
+          add(head[a], b, c);
+      }
+  }
+
+  int main() {
+      init();
+      build();
+      if(!spfa()) cout<<"有负环"<<endl;
+      return 0;
+  }
+#+END_SRC
+**** 题目
+***** DONE [[file:uva10557.cpp][uva10557]] spfa 单源最短路 有负环     转化为图的最短路模型
+CLOSED: [2017-08-13 周日 21:23]
+****** 题意
+n个点，每到达一个点，会加上e[i]的能量值，-100 <= e[i] <= 100，
+初始能量为100，问能否走到终点。
+起点和终点的能量值始终为0
+****** 数据
+一个数字n，代表点的个数，不超过100，n为-1表示结束
+后面n行，第i行代表第i个点的信息，从1开始编号，1是起点，n是终点
+每行第一个数字代表该点的能量值，第二个数字k代表出去的边数
+后面k个数字，表示该点连接的k个点
+****** u->v存在边，则该边的距离设置为-e[v]，然后求最短路
+若某点松弛后的距离>=100，则忽略该次松弛操作，不将其加入到队列中
+若v是负环里的点，标记v，在以后的松弛操作中不再考虑v
+然后单独判断v到n是否可达，只要可达那么就能走到终点，不需要考虑能量。
+***** DONE [[file:poj1511.cpp][poj1511]] dijkstra 单源最短路 无负权边
+CLOSED: [2017-08-13 周日 22:24]
+****** 题意
+求每个点到源点的最小往返距离
+****** 思路
+先求源点到所有点的最短路，然后将边反向，再求一遍
+***** uva10047 bfs 不准备做
+****** 题意
+n*m的棋盘，一个轮子有5种颜色，每走到相邻的格子，恰好变为下一种颜色
+走到相邻的格子，花费时间1，改变90度方向，也花费时间1，有些格子有障碍物，
+问从起点能否走到终点，最少需要多少时间？
+****** 思路
+1. 我的思路：
+   将格子编号1~n*m，再将每个格子分成4个中格子，分表表示4个方向，
+   每个中格子再分成5个小格子，表示某方向的5种颜色，
+   然后同一格子不同方向相同颜色的小格子连一条边，
+   相邻格子相同方向下一种颜色的小格子连一条边，
+   好吧。。很麻烦
+2. 网上的思路：
+   可以弄个结构体，存放当前格子的横纵坐标，轮子方向和颜色，以及当前花费的时间，
+   一个4维数组，存放某格子某方向某颜色所用的最少时间，然后bfs
+*** 拓扑排序
+**** 相关
+记录度数，每次取入度为0的点u，对于每条边u->v，将v的度数减1.
+**** 模板
+#+BEGIN_SRC c++
+  #define N 505
+  struct Node{
+      int v,next;
+  }edge[N<<4];
+  int len;
+
+  int head[N],  n;
+  int rd[N];
+  int ans[N], p;
+  stack<int> s;
+
+  void add_edge(int u, int v){
+      edge[len].next = head[u];
+      edge[len].v = v;
+      head[u] = len++;
+  }
+
+  void init(){
+      len = p = 0;
+      memset(head,-1, sizeof head);
+      memset(rd, 0, sizeof rd);
+      while(!s.empty()) s.pop();
+  }
+
+  void build(){
+      scanf("%d%d", &n, &m);
+      while( m-- ){
+          int a, b;
+          scanf("%d%d", &a, &b);
+          add_edge(a, b);
+          rd[b]++;
+      }
+  }
+
+  void topo(){
+      for(int i=0; i<n; i++) {
+          if(rd[i] == 0) {
+              s.push(i);
+          }
+      }
+      while(!s.empty()){
+          int u = s.top();
+          s.pop();
+          ans[p++] = u;
+          for(int i = head[u]; i != -1; i = edge[i].next) {
+              int v=edge[i].v;
+              rd[v]--;
+              if(rd[v]==0){
+                  s.push(v);
+              }
+          }
+      }
+      if(p==n) {
+          for(int i=0; i<n; i++) {
+              printf("%d ", ans[i]);
+          }
+      }else {
+          printf("有环");
+      }
+  }
+
+  int main() {
+      init();
+      build();
+      topo();
+      return 0;
+  }
+#+END_SRC
+**** 题目
+***** DONE [[file:uva10305.cpp][uva10305]] 裸的拓扑
+CLOSED: [2017-08-18 周五 23:51]
+****** 题意
+n个任务，i必须在j之前完成，求一个合法的顺序
+*** 二分图
+**** 相关
+充分必要条件是没有长度为奇数的环
+**** 题目
+***** TODO uva10004 二分图   留待以后
+****** 判断给定的图是否是二分图
+*** 欧拉道路
+**** 相关
+首先是要连通，然后要么所有点的出度都等于入度，
+要么最多有一个点的出度比入度多1，同时有一个点的出度比入度少1
+**** 题目
+***** uva10129 不做
+****** 题意
+若干单词，问能否排成一行，要求前一个单词的最后一个字母，和后一个单词的首字母相同
+单词数<=100000，每个单词长度<=1000
+****** 思路
+1. 首先判断是否连通，可以深搜或者并查集
+2. 将单词看成点，统计度数，单词数量比较大，判断连通性用并查集比较合适
+3. 或者将26个字母看成点，每个单词的首尾字母之间连一条有向边，
+   判断连通性用深搜或并查集都行
+*** 网络流 待处理
+**** 2002 - 金恺：《浅谈网络流算法的应用》例1
+***** 题意
+阿P与阿Q都是四驱车好手，他们各有N辆四驱车。为了一比高下，他们约好进行一场比赛。
+这次比赛共有M个分站赛，赢得分站赛场次多的获得总冠军。
+每个分站赛中，两人各选一辆自己的赛车比赛。分站赛的胜负大部分取决于两车的性能，但有时会出现A赢B、B赢C、C赢D、D又赢A的局面。
+幸好有一种高智能机器，只要给定两辆四驱车，就能立刻判断谁会赢，
+在总比赛前它就已经把阿p的每辆车与阿q的每辆车都两两测试过了，并且还把输赢表输入了电脑。
+另外，由于比赛的磨损，每辆四驱车都有自己的寿命（即它们能参加分站赛的场次），
+不同的四驱车寿命可能不同，但最多不会超过50场。两辆四驱车最多只能交手一次。
+现给定N、M（1<=N<=100，1<=M<=1000）、N*N的一个输赢表、每辆四驱车的寿命，并假设每次分站赛两人都有可选的赛车，
+请你计算一下阿P最多能够赢得多少个分站赛。
+***** 分析
+1. 源点s到阿P的N辆车之间各连一条边，容量为车的寿命。
+2. 阿P的车若能赢阿Q的车，则连一条容量为1的边。
+3. 阿Q的N辆车各连一条边到汇点t，容量为车的寿命。
+4. 再增加一个源点s2，加一条边s2->s，容量为M，表示最多M场分站赛。
+   最大流即为阿P能赢的次数。
+***** 总结
+1. 在知道应该用网络流的情况下，想到了前3点，忽略了M场分站赛的限制条件。
+   论文上还提到一个优化：2N辆车，3个源汇点，普通做法需要(2N+3)*(2N+3)的空间，
+   实际上最多只需要1+N+N+N*N=(N+1)*(N+1)条弧，s2->s的弧都可以不要，只需规定最多扩展M次流量即可
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* 搜索
+** 相关
+1. 剪枝、记忆化、状态压缩、判重、排序、优先队列、迭代加深、A*、IDA*、双向bfs、逆向bfs(例如八数码)
+** 排列
+*** 递归生成全排列  
+形成的树称为解答树
+元素相同/不同
+*** 下一个排列  STL
+next_permutation   同样适用于可重集
+#+BEGIN_SRC c++
+  sort(a, a+n);   //得到最小排列
+  do {
+      for(int i=0; i<n; i++) {
+          printf("%d ", a[i]);
+      }
+      printf("\n");
+  }while(next_permutation(a, a+n));   //求下一个排列
+#+END_SRC
+** 子集
+求0~n-1的子集
+*** 增量构造法
+#+BEGIN_SRC c++
+  void d(int p) {
+      for(int i=0; i<p; i++) {   //打印当前集合
+          printf("%d\n", a[i]);
+      }
+      printf("\n");
+      int j = p ? a[p-1]+1 : 0;  //当前元素可能的最小值
+      for(int i=j; i<n; i++) {
+          a[p] = i;
+          d(p+1);
+      }
+  }
+#+END_SRC
+*** 位向量法
+构造一个位向量b[i]，而不是构造a[]本身
+#+BEGIN_SRC c++
+  void d(int p){
+      if(p == n){
+          for(int i=0; i<n; i++) {
+              if(b[i]) printf("%d\n", i);
+          }
+          printf("\n");
+          return;
+      }
+      b[p] = 1;
+      d(p+1);
+      b[p] = 0;
+      d(p+1);
+  }
+#+END_SRC
+*** 二进制法
+全集为 ALL = (1<<n)-1;
+A的补集为   A^ALL
+#+BEGIN_SRC c++
+  void print(int s){
+      for(int i=0; i<n; i++) {
+          if(s&(1<<i)) printf("%d \n", i);
+      }
+      printf("\n");
+  }
+
+  for(int i=0; i<(1<<n); i++) {
+      print(i);
+  }
+#+END_SRC
+** 广搜
+判重考虑哈希   STL的集合需定义 < 操作符
+** 迭代加深
+** 题目
+*** 埃及分数
+**** 题意
+古埃及人用单位分数的和表示一切有理数，
+如2/3 = 1/2 + 1/6，但不允许2/3 = 1/3+1/3，加数不能相同
+表示方法有多种，加数越少越好，加数数量相同，最小的数越大越好，
+输入a/b，计算最佳表达式
+**** 思路
+深搜和广搜都不行，需要迭代加深
+另外，扩展到第i个加数，当前和为c/d，而第i个数为1/e，
+那么接下来至少需要(a/b-c/d)/(1/e)个分数
+*** DONE uva-10160
+**** 题意
+n(n<=35)个城市，若在城市i建立发电站，则其相邻的城市也会有电。问要让所有城市都有电，最少需要几个发电站
+**** 思路
+将图分离成若干连通分量，对于每个连通分量，若只有一个点，则必然要放一个发电站。对于度数为1的点，在它相邻点放发电站。
+
+1. a[]记录每个点是否放置发电站，b[]记录每个点是否通电，依次考虑每个点放不放发电站
+   优化：状态压缩，每个点及其相邻点用位表示，某点放置发电站，则将状态进行按位或操作
+        按度数降序排序
+   剪枝：若在点i放了发电站，按位或之后状态state没有改变，说明这个点及其相邻点已经都通电了，跳过该点
+        预先计算好点i~n全部按位或之后的结果s，若当前的state或上s，仍有某位为0，
+        说明即使后面的所有点都放上发电站，也不能使所有点都有电
+
+2. 将可选点，按照其 到未被覆盖的点 的度数降序排序。   
+   度数为k的点可以给k+1个点供电，若最多还能放m个发电站，
+   度数最多的m个点的度数的和为sum，则最多能给sum+m个点供电，若没电的点超过sum+m个，则剪枝
+
+法一比法二快的多的多
+*** DONE [[file:uva197.cpp][uva-197]]
+**** 题意
+有a~g 七种立体碎片,其中 要求给定a的输入后 a碎片只能平移，b~g可以平移和旋转，问组成一个3*3*3的立方体有哪些不同的组合形式
+**** 思路
+将3*3*3的立方体看成线性结构，所有小方块编号1~27。
+对于每个碎片，找出它的旋转和平移后的全部位置，用一个int型表示，然后遍历每个碎片的每种状态。
+*** DONE [[file:uva519.cpp][uva-519]]
+**** 题意
+拼图，n*m的棋盘，有n*m个拼图板，拼图板的四条边，有的凹，有的凸，有的是平的，问能否恰好放在棋盘内，n、m<=6
+其中平边只能放在棋盘边界上，内部不会出现平边
+**** 思路
+1. 上平边的数量和下平边的数量都应该等于m，左右平边的数量都应该等于n
+2. 每个角上能且仅能放一个小矩形
+3. 若n>1，则不存在上下两条边都是平边的小矩形，m>1不存在左右都是平边的小矩形
+4. 左侧凹边的数量应等于右侧凸边的数量，左凸==右凹，上凸==下凹，下凸==上凹
+5. 对于边上的小矩形，例如第一行，其左凸==右凹，右凸==左凹
+6. 应将小矩形分成5类，上边界 下边界 左边界 右边界 内部。
+   先放边界上的，边界之间互不影响，能放在某条边界上的小矩形一定不会放在其他边界或内部。
+   将每条边界上的所有情况全部存起来，去重，然后枚举4条边界的各种情况，再对内部进行搜索。
+7. 排序，如果某个拼图板放置之后不能得到解，那么跟它一样的板就不用放了
+*** DONE [[file:uva322.cpp][uva-322]]
+**** 题意
+给定7种图形，每种图形占4个格子，摆放在n*m的棋盘上，然后蒙上一层纸。
+已经揭开了某些格子上的纸，知道这些格子是否被图形覆盖，
+现在要继续揭开剩下的格子，若揭开的格子未被图形覆盖，则为1次失误。
+问能否在最多1次失误的前提下，揭开所有被图形覆盖的格子。
+图形可以旋转，不能翻转。
+**** 思路
+1. 先深搜，找出所有可能的图形摆放方式。优先考虑在已知被覆盖的格子上放置图形。
+2. 每个图形覆盖4个格子，若还剩x个已知被覆盖的格子，还有i个图形未考虑，x>i*4时，剩下的图形无法覆盖已知被覆盖的格子，返回。
+3. （关键）由于只能有一次失误，假设深搜得到了n种摆放方式，若存在某些格子被覆盖了n-1次，那么可以揭开某个这样的格子，
+   若为空，则失误一次，但此时能唯一确定一个解 P，因为只有这个解未覆盖这个格子。
+   若不为空，则把P去掉，依然还有一次失误的机会，可以重复上述过程，在剩下的n-1个解里，找被覆盖了n-2次的格子。
+4. 可能有多个被覆盖了n-1次的格子，若揭开其中的某一个，能找到所有图形，则原问题有解。
+5. 若还剩k种解，但不存在被覆盖了k-1次的格子，那么无法在只失误一次的前提下找出所有图形。
+6. 有n种解，那么至少存在一个格子被覆盖了n-1次。揭开这个格子去掉一个解，还剩n-1个解，至少存在一个格子被覆盖了n-2次......
+   所以若有n个解，那么至少要覆盖n*(n-1)/2次，而每个解有7个图形，每个图形覆盖4个格子，一共覆盖28*n次，
+   所以28*n>=n*(n-1)/2,n<=57。   
+   所以第一步找所有可能的图形摆放方式时，若找到了58个，则问题无解。
+*** uva-10603
+**** 题意
+a、b、c三个杯子，容量不超过200，起初只有c里面有一些水，
+要求倒最少的水，使某个杯子有d升水，如果不可能有d升水，那么找到最大的d'<d
+**** 思路
+判重只需要二维数组，表示a、b的水量，a、b确定后，c也就确定了
+倒水用二层循环
+优先级队列广搜
+*** DONE [[file:uva10085.cpp][uva-10085]]
+CLOSED: [2017-09-05 周二 22:17]
+**** 题意
+八数码，给定初始状态，找出能达到的最远的状态，即移动次数最多的状态，并输出移动路径
+**** 思路
+广搜，将排列转化为数字，康托展开
+#+BEGIN_SRC c++
+  //facts[i]表示i的阶乘
+  //第一个排列编码后为0   0解码后为第一个排列
+
+  //康托展开
+  int cantor(int a[], int n){// a[0~n-1] => int
+      int code = 0;
+      for(int i=0; i<n; i++) {
+          int cnt = 0;
+          for(int j=i+1; j<n; j++) {
+              if(a[i]>a[j]) cnt++;
+          }
+          code += cnt*facts[n-i-1];
+      }
+      return code;
+  }
+
+  //逆康托展开
+  void deCantor(int code, int a[], int n){//int => a[0~n-1]
+      long long state = 0;
+      for(int i = n-1; i >= 0; i--) {
+          int k = code / facts[i] + 1;
+          code = code % facts[i];
+          int cnt = 0;
+          for(int j=1; ; j++) {
+              if(!(state & (1<<j))) cnt++;
+              if(cnt==k) {
+                  a[n-1-i] = j-1;//a[]里最小的数是0
+                  state |= (1<<j);
+                  break;
+              }
+          }
+      }
+  }
+
+#+END_SRC
+*** 
+* 其他
+** 语言
+*** 输入输出
+1. 如何取消cin的同步
+2. 整行输入输出   
+   c风格：puts gets     
+   C++风格：getline(cin, string)   cin.getline()    注意是否读取换行符
+   getline()读到文件末尾会结束，可能返回-1？
+   getline(cin, string, '#')表示读到#号结束，哪怕中间是换行符也不结束。
+   第一行一个数字，第二行一个字符串，
+   先用cin读取数字，再用getline读取第二行的字符串是读不到的，读到的是第一行的换行符，cin没有读到数字后的换行符
+   所以cin读完后，要用getline专门把换行符读了，再读下面的内容
+3. scanf()  的一堆格式
+   scanf("%c", &ch);   会读入空格...
+4. 按字符读取   加快速度
+*** STL
+strcpy().....
+upper_bound()   lower_bound
+next_permutation
+nth_element
+unique
+“random”。。
+random_shuffle
+pair
+set
+map
+deque
+multiset
+memcmp  memcpy 整块内存的比较和复制
+还有一堆可持久化数据结构等等等等
+
+
+
+
+
+
+
+
+
+
+
+
