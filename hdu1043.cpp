@@ -22,16 +22,19 @@ const int N = 363000;
 
 int dir[4] = {-1, 3, 1, -3};  //方向
 char Dir[4] = {'l', 'd', 'r', 'u'};
-int facts[10] = {1};  //facts[i] = i的阶乘
+int facts[10];  //facts[i] = i的阶乘
 
 int a[9];  //编码前的状态
 int Hash[N];    //状态哈希
 
-int state[N]; //当前状态
+int st[N][9]; //当前状态
+int state[N]; //当前状态编码
+int pos8[N];  //8所在位置
 int pre[N];   //前一个状态
 char path[N]; //移动到该状态的方向
 int g[N];     //已移动的步数
-int f[N];     //估计的总步数
+int h[N];     //估价
+int f[N];     //g+h
 int p;        //下标
 int ans_p;    //到达目标状态的下标
 struct cmp{
@@ -41,9 +44,9 @@ struct cmp{
 };
 priority_queue<int, vector<int>, cmp> q;
 
-void shuchu(){
+void shuchu(int *p = a){
     for(int i=0; i<9; i++) {
-        cout<<a[i]<<' ';
+        cout<<p[i]<<' ';
         if(i%3==2) cout<<endl;
     }
     cout<<endl;
@@ -84,38 +87,28 @@ int deCantor(int code, int a[], int n){//int => a[0~n-1]
     return pos;
 }
 
-//从位置i移动到位置j所需要的最少步数
-inline int cal(int i, int j){
-    return abs(i/3-j/3)+abs(i%3-j%3);
-}
+int canMove[9][4]; //canMove[i][d]表示a[i]可否向d方向移动
+int minPath[9][9]; //minPath[i][j] 从位置i到位置j的最少步数
+int hehe[9][9][9]; //hehe[i][j][k] 将k从位置i移动到位置j 估价h的增量
 
-//交换a[i]、a[j]增加的步数
-inline int change(int i, int j){
-    if(a[i]==8) swap(i,j);
-    return cal(i, a[i]) - cal(j, a[i]);
-}
-
-void move(int u, int i, int d){//上一个节点下标 8所在位置 方向
-    int t1 = i%3, t2 = i/3;
-    if(d==0) {if(!t1) return;}
-    else if(d==2) {if(t1==2) return;}
-    else if(d==3) {if(t2==0) return;}
-    else if(d==1) {if(t2==2) return;}
-
+void move(int u, int d){//上一个节点下标 8所在位置 方向
+    int i = pos8[u];
     int j = i+dir[d];
-    swap(a[i], a[j]);
-    int v = cantor(a, 9);
-    if(Hash[v]!=2){
-        Hash[v] = 1;
-        state[p] = v;
-        pre[p] = u;
-        path[p] = Dir[d];
-        g[p] = g[u]+1;
-        f[p] = g[u]+change(i, j);
-        if(v==0) ans_p=p;
-        q.push(p++);
-    }
-    swap(a[i], a[j]);
+    memcpy(st[p], st[u], 9*4);
+    swap(st[p][i], st[p][j]);
+    int code = cantor(st[p], 9);
+    if(Hash[code]==-2) return;
+    if(Hash[code]>-1 && g[Hash[code]]<=g[u]+1) return;
+    Hash[code] = p;
+    state[p] = code;
+    pre[p] = u;
+    pos8[p] = j;
+    path[p] = Dir[d];
+    g[p] = g[u]+1;
+    h[p] = h[u]+hehe[j][i][st[p][i]];
+    f[p] = g[p]+h[p];
+    if(code==0) ans_p=p;
+    q.push(p++);
 }
 
 void A_star(){
@@ -124,25 +117,28 @@ void A_star(){
 
     int temp = 0;
     for(int i=0; i<9; i++) {
-        if(a[i]==8) continue;
-        temp+=cal(i,a[i]);
+        if(a[i]==8) {pos8[p]=i; continue;}
+        temp+=minPath[i][a[i]];
     }
 
-    Hash[code] = 1;
+    Hash[code] = p;
+    memcpy(st[p], a, 4*9);
     state[p]=code;
     pre[p] = -1;
     g[p]=0;
-    f[p]=temp;
+    h[p]=temp;
+    f[p]=g[p]+h[p];
     if(code==0) {ans_p=0; return;}
 
     q.push(p++);
     while(!q.empty()) {
         int u = q.top();  q.pop();
-        if(Hash[state[u]]==2) continue;
-        Hash[state[u]] = 2;
-        int i = deCantor(state[u], a, 9);
+        if(Hash[state[u]]==-2) continue;
+        Hash[state[u]] = -2;
+        // int i = deCantor(state[u], a, 9);
         for(int d=0; d<4; d++) {
-            move(u, i, d);
+            if(!canMove[pos8[u]][d]) continue;
+            move(u, d);
         }
         if(ans_p>-1) break;
     }
@@ -155,16 +151,17 @@ void print_path(int i){
     printf("%c", path[i]);
 }
 
-bool no_ans(){   //无解
+bool ok(){
     int s=0;
     for(int i=1; i<9; i++) {
         if(a[i]==8) continue;
         for(int j=0; j<i; j++) {
-            if(a[i]>a[j]) s++;
+            if(a[j]==8) continue;
+            if(a[j]>a[i]) s++;
         }
     }
-    if(s&1) return true;
-    return false;
+    if(s&1) return false;
+    return true;
 }
 
 int Read(){
@@ -177,21 +174,45 @@ int Read(){
     return i;
 }
 
+void init() {
+    facts[0]=1;
+    for(int i=1; i<10; i++) {
+        facts[i] = facts[i-1]*i;
+    }
+    for(int i=0; i<9; i++) {
+        for(int d=0; d<4; d++) {
+            int j = i+dir[d];
+            if(j<0 || j>8) {canMove[i][d] = 0; continue;}
+            if(!(d&1) && i/3!=j/3) {canMove[i][d] = 0; continue;}
+            canMove[i][d] = 1;
+        }
+    }
+    for(int i=0; i<9; i++) {
+        for(int j=0; j<9; j++) {
+            minPath[i][j] = abs(i/3-j/3) + abs(i%3-j%3);
+        }
+    }
+    for(int i=0; i<9; i++) {
+        for(int j=0; j<9; j++) {
+            for(int k=0; k<9; k++) {
+                hehe[i][j][k] = minPath[j][k] - minPath[i][k];
+            }
+        }
+    }
+}
+
 int main(){//hdu1043
 #ifndef ONLINE_JUDGE
-    // freopen("in.txt","r",stdin);
-    freopen("out.txt","w",stdout);
+    freopen("0_in.txt","r",stdin);
+    // freopen("0_out.txt","w",stdout);
 #endif
 
-    for(int i=1; i<10; i++) {  //计算阶乘
-        facts[i] = i*facts[i-1];
-    }
-
+    init();
     while(Read()) {
-        if(no_ans()) {printf("unsolvable\n"); continue;}
+        if(!ok()) {printf("unsolvable\n"); continue;}
         p=0;
         ans_p=-1;
-        memset(Hash, 0, sizeof Hash);
+        memset(Hash, -1, sizeof Hash);
         A_star();
         print_path(ans_p);
         printf("\n");
